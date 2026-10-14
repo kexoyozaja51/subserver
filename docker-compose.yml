@@ -1,0 +1,7 @@
+services:
+  subserver:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    network_mode: host
