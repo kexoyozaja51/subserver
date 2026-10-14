@@ -44,7 +44,6 @@ async def subscription(path: str, response: Response):
             if response.status_code != 200:
                 continue
 
-            print(response.headers)
             userinfo = response.headers.get("Subscription-Userinfo")
             if userinfo:
                 userinfo = userinfo.split(";")
@@ -54,7 +53,7 @@ async def subscription(path: str, response: Response):
                     upload += int(i.split("=")[1])
                 if i.strip().startswith("download"):
                     download += int(i.split("=")[1])
-            print(upload, download)
+            
             for line in response.text.splitlines():
                 line = line.strip()
 
