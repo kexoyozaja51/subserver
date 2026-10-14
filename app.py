@@ -1,5 +1,6 @@
 import traceback
 import base64
+from urllib.parse import parse_qs, unquote, urlparse
 
 import requests
 import uvicorn
@@ -12,6 +13,37 @@ dotenv.load_dotenv()
 
 app = FastAPI()
 
+
+def convert_http2_to_naive(line: str) -> str:
+    if not line.startswith("http2://"):
+        return line
+
+    try:
+        parsed = urlparse(line)
+
+        encoded = parsed.netloc
+        decoded = base64.b64decode(
+            encoded + "=" * (-len(encoded) % 4)
+        ).decode()
+
+        params = parse_qs(parsed.query)
+        peer = params.get("peer", [""])[0]
+        fragment = unquote(parsed.fragment)
+
+        result = f"naive+https://{decoded}"
+
+        result += "?uot=1&security=tls"
+
+        if peer:
+            result += f"&sni={peer}"
+
+        if fragment:
+            result += f"#{fragment}"
+
+        return result
+
+    except Exception:
+        return line
 
 @app.get("/{path:path}")
 async def subscription(path: str, response: Response):
@@ -57,9 +89,12 @@ async def subscription(path: str, response: Response):
             for line in response.text.splitlines():
                 line = line.strip()
 
-                if line.startswith("http2://"):
+                if line.startswith("naive+https://"):
                     continue
 
+                if line:
+                    line = convert_http2_to_naive(line)
+                
                 name = os.getenv(f"subid_{sub_id}_suffix", "")
                 line = f"{line}{name}" if name else line
                 subs_configs.append(line)
