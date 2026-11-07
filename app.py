@@ -16,7 +16,7 @@ app = FastAPI()
 
 @app.get("/{path:path}")
 async def subscription(path: str, response: Response):
-    # 1. get sub_id
+    # 1. get sub_id and preferably name
     sub_path = os.getenv("SUB_PATH")
     if sub_path is None:
         return []
@@ -28,6 +28,7 @@ async def subscription(path: str, response: Response):
         return "not found"
 
     sub_id = path.replace(sub_path, "")
+    name = os.getenv(f"subid_{sub_id}_suffix", "")
 
     # 2. get sub_urls
     subs_urls = []
@@ -57,10 +58,9 @@ async def subscription(path: str, response: Response):
                         download += int(i.split("=")[1])
 
             sub_json = json.loads(response.text)
-
-            name = os.getenv(f"subid_{sub_id}_suffix", "")
-            sub_json["remarks"] = sub_json["remarks"] + name if name else sub_json["remarks"]
-            subs_jsons.extend(sub_json)
+            for config in sub_json:
+                subs_jsons.append(config)
+                subs_jsons[-1]["remarks"] = subs_jsons[-1]["remarks"] + name if name else subs_jsons[-1]["remarks"]
         except:
             traceback.print_exc()
 
@@ -79,4 +79,4 @@ async def subscription(path: str, response: Response):
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
